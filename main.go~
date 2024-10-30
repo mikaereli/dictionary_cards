@@ -1,0 +1,109 @@
+package main
+
+import (
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"log"
+)
+
+type UserState struct {
+	InBlock   bool
+	BlockName string
+	Cards     []string
+}
+
+var userStates = make(map[int64]*UserState)
+
+func main() {
+	bot, err := tgbotapi.NewBotAPI("YOUR_TELEGRAM_BOT_TOKEN")
+	if err != nil {
+		log.Panic(err)
+	}
+
+	bot.Debug = true
+	log.Printf("Authorized on account %s", bot.Self.UserName)
+
+	u := tgbotapi.NewUpdate(0)
+	u.Timeout = 60
+
+	updates, err := bot.GetUpdatesChan(u)
+
+	for update := range updates {
+		if update.Message == nil {
+			continue
+		}
+
+		chatID := update.Message.Chat.ID
+
+		// Инициализация состояния пользователя
+		if _, ok := userStates[chatID]; !ok {
+			userStates[chatID] = &UserState{}
+		}
+
+		userState := userStates[chatID]
+
+		// Обработка команд
+		switch update.Message.Text {
+		case "/start":
+			handleStart(bot, update.Message)
+		case "Создать блок":
+			handleCreateBlock(bot, update.Message, userState)
+		case "Выйти из блока":
+			handleExitBlock(bot, update.Message, userState)
+		case "Добавить карточку":
+			handleAddCard(bot, update.Message, userState)
+		default:
+			if userState.InBlock {
+				userState.Cards = append(userState.Cards, update.Message.Text)
+				bot.Send(tgbotapi.NewMessage(chatID, "Карточка добавлена!"))
+			} else {
+				bot.Send(tgbotapi.NewMessage(chatID, "Неизвестная команда."))
+			}
+		}
+	}
+}
+
+func handleStart(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) {
+	chatID := msg.Chat.ID
+	keyboard := tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("Создать блок"),
+		),
+	)
+	bot.Re
+	bot.Send(tgbotapi.NewMessage(chatID, "Добро пожаловать! Выберите действие:").(keyboard))
+}
+
+func handleCreateBlock(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, userState *UserState) {
+	chatID := msg.Chat.ID
+	userState.InBlock = true
+	userState.BlockName = "Блок 1" // Здесь можно добавить выбор названия блока
+	keyboard := tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("Добавить карточку"),
+			tgbotapi.NewKeyboardButton("Выйти из блока"),
+		),
+	)
+	bot.Send(tgbotapi.NewMessage(chatID, "Блок создан. Теперь вы можете добавлять карточки.").SetReplyMarkup(keyboard))
+}
+
+func handleExitBlock(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, userState *UserState) {
+	chatID := msg.Chat.ID
+	userState.InBlock = false
+	userState.BlockName = ""
+	userState.Cards = []string{}
+	keyboard := tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("Создать блок"),
+		),
+	)
+	bot.Send(tgbotapi.NewMessage(chatID, "Вы вышли из блока.").SetReplyMarkup(keyboard))
+}
+
+func handleAddCard(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, userState *UserState) {
+	chatID := msg.Chat.ID
+	if userState.InBlock {
+		bot.Send(tgbotapi.NewMessage(chatID, "Введите текст карточки:"))
+	} else {
+		bot.Send(tgbotapi.NewMessage(chatID, "Сначала создайте блок!"))
+	}
+}
