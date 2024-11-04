@@ -29,7 +29,6 @@ func GetToken() string {
 	return os.Getenv("BOT_TOKEN")
 }
 
-// Начало
 func handleStart(bot *tgbotapi.BotAPI, chatID int64) {
 	msg := tgbotapi.NewMessage(chatID, "Добро пожаловать! Выберите действие:")
 	msg.ReplyMarkup = tgbotapi.ReplyKeyboardMarkup{
@@ -41,13 +40,11 @@ func handleStart(bot *tgbotapi.BotAPI, chatID int64) {
 	bot.Send(msg)
 }
 
-// Создание блока с именем
 func handleCreateBlock(bot *tgbotapi.BotAPI, chatID int64) {
 	msg := tgbotapi.NewMessage(chatID, "Введите название блока:")
 	bot.Send(msg)
 }
 
-// Обработчик добавления карточки
 func handleAddCard(bot *tgbotapi.BotAPI, chatID int64) {
 	msg := tgbotapi.NewMessage(chatID, "Введите текст карточки:")
 	bot.Send(msg)
